@@ -35,10 +35,73 @@ async function run() {
     console.log(
       `Successfully fetched ${activity.length} events for ${username}.`,
     );
-    // Phase 2 Check: Log the first event to see the structure
-    console.log("Sample Event Type:", activity[0].type);
   } else {
     console.log("No recent public activity found for this user.");
+  }
+
+  const pushSummaryByRepo = new Map();
+
+  activity.forEach((event) => {
+    if (event.type === "PushEvent") {
+      const repoName = event.repo ? event.repo.name : "unknown repo";
+      // Fallback logic: if size/commits are missing from payload, assume 1.
+      const size = event.payload.size;
+      const commitsArr = event.payload.commits?.length;
+      const commitCount = size || commitsArr || 1;
+      pushSummaryByRepo.set(
+        repoName,
+        (pushSummaryByRepo.get(repoName) || 0) + commitCount,
+      );
+    }
+  });
+
+  activity.forEach((event) => {
+    let action = "";
+    const repoName = event.repo ? event.repo.name : "unknown repo";
+
+    switch (event.type) {
+      case "PushEvent":
+        // Push events are summarized after listing non-push events.
+        return;
+
+      case "WatchEvent":
+        action = `Starred ${repoName}`;
+        break;
+
+      case "CreateEvent":
+        // Handles creating a branch, tag, or the repo itself
+        const type = event.payload.ref_type; // 'branch', 'tag', or 'repository'
+        action = `Created a ${type} in ${repoName}`;
+        break;
+
+      case "IssuesEvent":
+        action = `${event.payload.action.charAt(0).toUpperCase() + event.payload.action.slice(1)} an issue in ${repoName}`;
+        break;
+
+      case "PullRequestEvent":
+        action = `${event.payload.action.charAt(0).toUpperCase() + event.payload.action.slice(1)} a pull request in ${repoName}`;
+        break;
+
+      case "IssueCommentEvent":
+        action = `Commented on an issue in ${repoName}`;
+        break;
+
+      case "DeleteEvent":
+        action = `Deleted ${event.payload.ref_type} ${event.payload.ref} from ${repoName}`;
+        break;
+
+      default:
+        // Instead of "Did something", let's at least show the event type
+        const cleanName = event.type.replace("Event", "");
+        action = `${cleanName} activity in ${repoName}`;
+    }
+    console.log(`- ${action}`);
+  });
+
+  if (pushSummaryByRepo.size > 0) {
+    for (const [repoName, commitCount] of pushSummaryByRepo.entries()) {
+      console.log(`- Pushed ${commitCount} commit(s) to ${repoName}`);
+    }
   }
 }
 
