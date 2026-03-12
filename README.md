@@ -2,6 +2,8 @@
 
 A lightweight command-line interface (CLI) built with **Node.js** that fetches and summarizes recent activity for any GitHub user.
 
+Project URL: https://roadmap.sh/projects/github-user-activity
+
 This project was built as a learning exercise to practice interacting with REST APIs using native Node.js features, handling asynchronous data, and implementing data aggregation without external dependencies.
 
 ## Features
